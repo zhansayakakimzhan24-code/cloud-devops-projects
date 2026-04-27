@@ -1,10 +1,195 @@
 <!DOCTYPE html>
-<html>
+<html lang="kk">
 <head>
-    <title>My Cloud Project</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Cloud Monitor - Kostanay</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            /* Жаңа дизайн: Күлгін-көк градиент */
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            font-family: 'Segoe UI', -apple-system, sans-serif;
+            color: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Glassmorphism эффектісі */
+        .dashboard {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 2.5rem;
+            border-radius: 28px;
+            width: 420px;
+            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.6);
+        }
+
+        h2 { font-weight: 600; font-size: 1.1rem; margin-bottom: 1.8rem; color: #a5b4fc; text-transform: uppercase; letter-spacing: 1.5px; text-align: center;}
+
+        /* Ауа райы картасының жаңа дизайны */
+        .weather-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1.8rem;
+            border-radius: 20px;
+            margin-bottom: 1.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .weather-card:hover { transform: translateY(-3px); background: rgba(255, 255, 255, 0.05); }
+
+        .weather-info p { color: #94a3b8; font-size: 0.95rem; }
+        .weather-info h1 { font-size: 3.2rem; margin: 0.3rem 0; font-weight: 700; color: #f8fafc; }
+        .weather-info #desc { color: #e2e8f0; text-transform: capitalize; font-size: 1rem;}
+
+        .system-stats { display: grid; gap: 1.2rem; }
+
+        .stat-item {
+            background: rgba(15, 23, 42, 0.4);
+            padding: 1.1rem;
+            border-radius: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid transparent;
+        }
+        
+        .stat-item:hover { border-color: rgba(165, 180, 252, 0.2); }
+
+        .label { color: #94a3b8; font-size: 0.9rem; }
+        .value { font-family: 'Consolas', monospace; color: #4ade80; font-weight: 600; font-size: 1.1rem;}
+
+        .status-badge {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            background: rgba(74, 222, 128, 0.1);
+            color: #4ade80;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin: 0 auto 1.5rem auto;
+            width: fit-content;
+        }
+
+        .pulse {
+            width: 9px; height: 9px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); }
+            100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+        }
+        
+        #weather-icon { font-size: 3.5rem; }
+    </style>
 </head>
 <body>
-    <h1>Hello, this is my DevOps Project 🚀</h1>
-    <p>Student: Zhansaya</p>
+
+    <div class="dashboard">
+        <div class="status-badge">
+            <div class="pulse"></div> Cloud Instance: eu-central-1a
+        </div>
+        
+        <h2>Kostanay Infra Monitor</h2>
+
+        <div class="weather-card">
+            <div class="weather-info">
+                <p>Location: Kostanay, KZ</p>
+                <h1 id="temp">...°C</h1>
+                <p id="desc">Жүктелуде...</p>
+            </div>
+            <div id="weather-icon">⏳</div>
+        </div>
+
+        <div class="system-stats">
+            <div class="stat-item">
+                <span class="label">CPU Usage</span>
+                <span class="value" id="cpu">0%</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">Memory</span>
+                <span class="value">1.4GB / 2GB</span>
+            </div>
+            <div class="stat-item">
+                <span class="label">Network Latency</span>
+                <span class="value" style="color: #f8fafc;">32ms</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Open-Meteo API (Тегін, кілт керек емес)
+        // Координаты Костаная: 53.21, 63.62
+        const apiUrl = "https://api.open-meteo.com/v1/forecast?latitude=53.21&longitude=63.62&current_weather=true&timezone=auto";
+
+        // Ауа райы иконкаларын сәйкестендіру
+        function getWeatherIcon(code) {
+            // WMO Weather interpretation codes (https://open-meteo.com/en/docs)
+            if (code === 0) return "☀️"; // Ашық
+            if (code >= 1 && code <= 3) return "🌤️"; // Жартылай бұлтты
+            if (code >= 45 && code <= 48) return "🌫️"; // Тұман
+            if (code >= 51 && code <= 67) return "🌧️"; // Жаңбыр
+            if (code >= 71 && code <= 77) return "❄️"; // Қар
+            if (code >= 80 && code <= 82) return "🌦️"; // Нөсер
+            if (code >= 95 && code <= 99) return "⛈️"; // Найзағай
+            return "☁️"; // Әдепкі бұлтты
+        }
+
+        // Ауа райы сипаттамасын қазақшалау (қарапайым нұсқа)
+        function getWeatherDescKz(code) {
+            if (code === 0) return "Ашық аспан";
+            if (code === 1) return "Негізінен ашық";
+            if (code === 2) return "Бұлтты";
+            if (code === 3) return "Тұтас бұлтты";
+            if (code === 61) return "Әлсіз жаңбыр";
+            return "Деректер алынды";
+        }
+
+        async function fetchWeather() {
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                if(data && data.current_weather) {
+                    const temp = Math.round(data.current_weather.temperature);
+                    const code = data.current_weather.weathercode;
+
+                    document.getElementById('temp').innerText = `${temp > 0 ? '+' : ''}${temp}°C`;
+                    document.getElementById('desc').innerText = getWeatherDescKz(code);
+                    document.getElementById('weather-icon').innerText = getWeatherIcon(code);
+                } else {
+                    document.getElementById('desc').innerText = "Дерек қате";
+                }
+            } catch (e) {
+                console.error("API-мен байланыс үзілді:", e);
+                document.getElementById('desc').innerText = "Байланыс жоқ";
+            }
+        }
+
+        // CPU жүктемесін имитациялау (DevOps мониторингі үшін)
+        setInterval(() => {
+            let load = Math.floor(Math.random() * 18) + 2; // 2% - 20% аралығы
+            document.getElementById('cpu').innerText = load + "%";
+        }, 2500);
+
+        // Бастапқы жүктеу
+        fetchWeather();
+        // Әр 10 минут сайын жаңартып тұру
+        setInterval(fetchWeather, 600000); 
+    </script>
 </body>
 </html>
